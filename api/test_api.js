@@ -23,10 +23,10 @@ async function test() {
     }
   }
 
-  console.log("--- Starting Tests ---");
+  console.log("--- Starting Comprehensive Tests ---");
 
-  // 1. Register Admin
-  console.log(`\n1. Registering Admin (${adminEmail})...`);
+  // --- 1. Admin Setup ---
+  console.log(`\n[1] Registering Admin (${adminEmail})...`);
   let res = await request("POST", "/auth/register", null, {
     name: "Admin User",
     email: adminEmail,
@@ -34,46 +34,30 @@ async function test() {
     telephone: "1234567890",
     role: "admin",
   });
-  console.log(`Status: ${res.status}`, res.data.success ? "SUCCESS" : "FAILED");
-  if (!res.data.success) {
-    console.log("Response:", JSON.stringify(res.data, null, 2));
-    return;
-  }
   let adminToken = res.data.token;
-
-  // If register doesn't return token, try login
   if (!adminToken) {
-    console.log("Token not found in register response, trying login...");
     res = await request("POST", "/auth/login", null, {
       email: adminEmail,
       password,
     });
     adminToken = res.data.token;
   }
+  console.log(`Admin Token: ${adminToken ? "OK" : "MISSING"}`);
 
-  if (!adminToken) {
-    console.log("Failed to get admin token");
-    return;
-  }
-  console.log("Admin Token received");
-
-  // 2. Create Car Provider
-  console.log(`\n2. Creating Car Provider...`);
+  // --- 2. Create Car Provider ---
+  console.log(`\n[2] Admin creating Car Provider...`);
   res = await request("POST", "/carproviders", adminToken, {
     name: `Best Cars ${timestamp}`,
     address: "123 Main St",
     telephone: "555-1234",
   });
-  console.log(`Status: ${res.status}`, res.data.success ? "SUCCESS" : "FAILED");
-  if (!res.data.success) {
-    console.log("Response:", JSON.stringify(res.data, null, 2));
-    return;
-  }
   const carProviderId = res.data.data._id;
-  console.log(`Car Provider ID: ${carProviderId}`);
+  console.log(
+    `Car Provider Created: ${res.data.success} (ID: ${carProviderId})`
+  );
 
-  // 3. Register User
-  console.log(`\n3. Registering User (${userEmail})...`);
+  // --- 3. User Registration & Login ---
+  console.log(`\n[3] Registering User (${userEmail})...`);
   res = await request("POST", "/auth/register", null, {
     name: "Regular User",
     email: userEmail,
@@ -81,8 +65,6 @@ async function test() {
     telephone: "0987654321",
     role: "user",
   });
-  console.log(`Status: ${res.status}`, res.data.success ? "SUCCESS" : "FAILED");
-
   let userToken = res.data.token;
   if (!userToken) {
     res = await request("POST", "/auth/login", null, {
@@ -91,48 +73,102 @@ async function test() {
     });
     userToken = res.data.token;
   }
-  console.log("User Token received");
+  console.log(`User Token: ${userToken ? "OK" : "MISSING"}`);
 
-  // 4. Create Booking
-  console.log(`\n4. Creating Booking...`);
-  // Route: POST /carproviders/:carProviderId/bookings
+  // --- 4. User Logout ---
+  console.log(`\n[4] Testing User Logout...`);
+  res = await request("GET", "/auth/logout", userToken);
+  console.log(`Logout Status: ${res.status} (Expected 200)`);
+  // Note: JWT is stateless on server side usually unless using cookies/blacklist,
+  // but the endpoint should return success. Client discards token.
+
+  // --- 5. User Booking Limit (Max 3) ---
+  console.log(`\n[5] Testing Booking Limit (Max 3)...`);
+  const bookingIds = [];
+
+  // Book 3 cars
+  for (let i = 1; i <= 3; i++) {
+    console.log(`   Booking ${i}...`);
+    res = await request(
+      "POST",
+      `/carproviders/${carProviderId}/bookings`,
+      userToken,
+      {
+        bookingDate: `2025-12-0${i}`,
+      }
+    );
+    if (res.data.success) {
+      bookingIds.push(res.data.data._id);
+      console.log(`   -> Success (ID: ${res.data.data._id})`);
+    } else {
+      console.log(`   -> Failed: ${res.data.message}`);
+    }
+  }
+
+  // Try to book 4th car
+  console.log(`   Booking 4 (Should Fail)...`);
   res = await request(
     "POST",
     `/carproviders/${carProviderId}/bookings`,
     userToken,
     {
-      bookingDate: "2025-12-25",
+      bookingDate: "2025-12-04",
     }
   );
-  console.log(`Status: ${res.status}`, res.data.success ? "SUCCESS" : "FAILED");
-  if (!res.data.success) {
-    console.log("Response:", JSON.stringify(res.data, null, 2));
-  } else {
-    const bookingId = res.data.data._id;
-    console.log(`Booking ID: ${bookingId}`);
+  console.log(`   -> Status: ${res.status} (Expected 400)`);
+  console.log(`   -> Message: ${res.data.message}`);
 
-    // 5. Get Bookings
-    console.log(`\n5. Getting Bookings...`);
-    res = await request("GET", "/bookings", userToken);
-    console.log(
-      `Status: ${res.status}`,
-      res.data.count === 1 ? "SUCCESS" : "FAILED"
-    );
-    console.log("Bookings count:", res.data.count);
+  // --- 6. User View Bookings ---
+  console.log(`\n[6] User Viewing Own Bookings...`);
+  res = await request("GET", "/bookings", userToken);
+  console.log(`Count: ${res.data.count} (Expected 3)`);
 
-    // 6. Delete Booking
-    console.log(`\n6. Deleting Booking...`);
-    res = await request("DELETE", `/bookings/${bookingId}`, userToken);
-    console.log(
-      `Status: ${res.status}`,
-      res.data.success ? "SUCCESS" : "FAILED"
-    );
+  // --- 7. User Edit Booking ---
+  if (bookingIds.length > 0) {
+    console.log(`\n[7] User Editing Booking 1...`);
+    res = await request("PUT", `/bookings/${bookingIds[0]}`, userToken, {
+      bookingDate: "2026-01-01",
+    });
+    console.log(`Update Status: ${res.status} (Expected 200)`);
+    console.log(`New Date: ${res.data.data.bookingDate}`);
   }
 
-  // 7. Delete Car Provider
-  console.log(`\n7. Deleting Car Provider...`);
+  // --- 8. User Delete Booking ---
+  if (bookingIds.length > 0) {
+    console.log(`\n[8] User Deleting Booking 1...`);
+    res = await request("DELETE", `/bookings/${bookingIds[0]}`, userToken);
+    console.log(`Delete Status: ${res.status} (Expected 200)`);
+    // Remove from local list
+    bookingIds.shift();
+  }
+
+  // --- 9. Admin View All Bookings ---
+  console.log(`\n[9] Admin Viewing All Bookings...`);
+  res = await request("GET", "/bookings", adminToken);
+  console.log(
+    `Admin View Count: ${res.data.count} (Should be >= ${bookingIds.length})`
+  );
+
+  // --- 10. Admin Edit User's Booking ---
+  if (bookingIds.length > 0) {
+    console.log(`\n[10] Admin Editing User's Booking...`);
+    res = await request("PUT", `/bookings/${bookingIds[0]}`, adminToken, {
+      bookingDate: "2026-02-02",
+    });
+    console.log(`Admin Update Status: ${res.status} (Expected 200)`);
+  }
+
+  // --- 11. Admin Delete User's Booking ---
+  if (bookingIds.length > 0) {
+    console.log(`\n[11] Admin Deleting User's Booking...`);
+    res = await request("DELETE", `/bookings/${bookingIds[0]}`, adminToken);
+    console.log(`Admin Delete Status: ${res.status} (Expected 200)`);
+  }
+
+  // --- 12. Cleanup ---
+  console.log(`\n[12] Cleanup (Deleting Car Provider)...`);
   res = await request("DELETE", `/carproviders/${carProviderId}`, adminToken);
-  console.log(`Status: ${res.status}`, res.data.success ? "SUCCESS" : "FAILED");
+  console.log(`Cleanup Status: ${res.status}`);
 
   console.log("\n--- Tests Completed ---");
 }
