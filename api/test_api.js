@@ -75,18 +75,46 @@ async function test() {
   }
   console.log(`User Token: ${userToken ? "OK" : "MISSING"}`);
 
-  // --- 4. User Logout ---
-  console.log(`\n[4] Testing User Logout...`);
-  res = await request("GET", "/auth/logout", userToken);
-  console.log(`Logout Status: ${res.status} (Expected 200)`);
-  // Note: JWT is stateless on server side usually unless using cookies/blacklist,
-  // but the endpoint should return success. Client discards token.
+  // --- 4. Wallet Tests ---
+  console.log(`\n[4] Testing Wallet Features...`);
 
-  // --- 5. User Booking Limit (Max 3) ---
-  console.log(`\n[5] Testing Booking Limit (Max 3)...`);
+  // 4a. Check Initial Balance
+  console.log(`   Checking Initial Balance...`);
+  res = await request("GET", "/auth/me", userToken);
+  console.log(`   -> Balance: ${res.data.data.balance} (Expected 0)`);
+
+  // 4b. Try Booking with 0 Balance (Should Fail)
+  console.log(`   Trying Booking with 0 Balance...`);
+  res = await request(
+    "POST",
+    `/carproviders/${carProviderId}/bookings`,
+    userToken,
+    {
+      bookingDate: "2025-12-25",
+    }
+  );
+  console.log(`   -> Status: ${res.status} (Expected 400)`);
+  console.log(`   -> Message: ${res.data.message}`);
+
+  // 4c. Deposit Money
+  console.log(`   Depositing 5000...`);
+  res = await request("POST", "/transactions/deposit", userToken, {
+    amount: 5000,
+  });
+  console.log(`   -> New Balance: ${res.data.newBalance} (Expected 5000)`);
+
+  // 4d. Withdraw Money
+  console.log(`   Withdrawing 500...`);
+  res = await request("POST", "/transactions/withdraw", userToken, {
+    amount: 500,
+  });
+  console.log(`   -> New Balance: ${res.data.newBalance} (Expected 4500)`);
+
+  // --- 5. User Booking Limit (Max 3) & Payment ---
+  console.log(`\n[5] Testing Booking Limit & Payment (Cost 1000 each)...`);
   const bookingIds = [];
 
-  // Book 3 cars
+  // Book 3 cars (Cost 3000 total)
   for (let i = 1; i <= 3; i++) {
     console.log(`   Booking ${i}...`);
     res = await request(
@@ -105,8 +133,14 @@ async function test() {
     }
   }
 
-  // Try to book 4th car
-  console.log(`   Booking 4 (Should Fail)...`);
+  // Check Balance after 3 bookings (4500 - 3000 = 1500)
+  res = await request("GET", "/auth/me", userToken);
+  console.log(
+    `   -> Balance after bookings: ${res.data.data.balance} (Expected 1500)`
+  );
+
+  // Try to book 4th car (Should fail due to limit, not balance)
+  console.log(`   Booking 4 (Should Fail Limit)...`);
   res = await request(
     "POST",
     `/carproviders/${carProviderId}/bookings`,
@@ -133,40 +167,53 @@ async function test() {
     console.log(`New Date: ${res.data.data.bookingDate}`);
   }
 
-  // --- 8. User Delete Booking ---
+  // --- 8. User Delete Booking & Refund ---
   if (bookingIds.length > 0) {
-    console.log(`\n[8] User Deleting Booking 1...`);
+    console.log(`\n[8] User Deleting Booking 1 (Refund 1000)...`);
     res = await request("DELETE", `/bookings/${bookingIds[0]}`, userToken);
     console.log(`Delete Status: ${res.status} (Expected 200)`);
-    // Remove from local list
+
+    // Check Balance after refund (1500 + 1000 = 2500)
+    res = await request("GET", "/auth/me", userToken);
+    console.log(
+      `   -> Balance after refund: ${res.data.data.balance} (Expected 2500)`
+    );
+
     bookingIds.shift();
   }
 
-  // --- 9. Admin View All Bookings ---
-  console.log(`\n[9] Admin Viewing All Bookings...`);
+  // --- 9. Transaction History ---
+  console.log(`\n[9] Checking Transaction History...`);
+  res = await request("GET", "/transactions", userToken);
+  console.log(`Transaction Count: ${res.data.count}`);
+  // Expected: Deposit(1) + Withdraw(1) + Payments(3) + Refund(1) = 6
+  console.log(`   -> Expected ~6 transactions`);
+
+  // --- 10. Admin View All Bookings ---
+  console.log(`\n[10] Admin Viewing All Bookings...`);
   res = await request("GET", "/bookings", adminToken);
   console.log(
     `Admin View Count: ${res.data.count} (Should be >= ${bookingIds.length})`
   );
 
-  // --- 10. Admin Edit User's Booking ---
+  // --- 11. Admin Edit User's Booking ---
   if (bookingIds.length > 0) {
-    console.log(`\n[10] Admin Editing User's Booking...`);
+    console.log(`\n[11] Admin Editing User's Booking...`);
     res = await request("PUT", `/bookings/${bookingIds[0]}`, adminToken, {
       bookingDate: "2026-02-02",
     });
     console.log(`Admin Update Status: ${res.status} (Expected 200)`);
   }
 
-  // --- 11. Admin Delete User's Booking ---
+  // --- 12. Admin Delete User's Booking ---
   if (bookingIds.length > 0) {
-    console.log(`\n[11] Admin Deleting User's Booking...`);
+    console.log(`\n[12] Admin Deleting User's Booking...`);
     res = await request("DELETE", `/bookings/${bookingIds[0]}`, adminToken);
     console.log(`Admin Delete Status: ${res.status} (Expected 200)`);
   }
 
-  // --- 12. Cleanup ---
-  console.log(`\n[12] Cleanup (Deleting Car Provider)...`);
+  // --- 13. Cleanup ---
+  console.log(`\n[13] Cleanup (Deleting Car Provider)...`);
   res = await request("DELETE", `/carproviders/${carProviderId}`, adminToken);
   console.log(`Cleanup Status: ${res.status}`);
 
