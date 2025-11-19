@@ -25,6 +25,15 @@ A backend system for managing car rental bookings, built with Node.js, Express, 
 - **View:** Users see their own bookings; Admins see all bookings.
 - **Update/Delete:** Users manage their own; Admins manage all.
 
+### Wallet & Transactions
+
+- **Closed-Loop Wallet:** Users have a balance managed within the system.
+- **Cost:** Each booking costs **1000** units.
+- **Deposit/Withdraw:** Users can deposit or withdraw funds to adjust their balance.
+- **Payments:** Booking creation automatically deducts 1000 from the user's balance.
+- **Refunds:** Canceling a booking automatically refunds 1000 to the user's balance.
+- **History:** Users can view their transaction history (Deposits, Withdrawals, Payments, Refunds).
+
 ## Tech Stack
 
 - **Runtime:** Node.js
@@ -88,3 +97,17 @@ npm run dev
 - `POST /api/v1/carproviders/:carProviderId/bookings` - Create a booking
 - `PUT /api/v1/bookings/:id` - Update booking
 - `DELETE /api/v1/bookings/:id` - Delete booking
+
+### Transactions
+
+- `GET /api/v1/transactions` - Get transaction history
+- `POST /api/v1/transactions/deposit` - Deposit money
+- `POST /api/v1/transactions/withdraw` - Withdraw money
+
+## Testing
+
+To run the comprehensive test suite (including wallet scenarios):
+
+```bash
+node test_api.js
+```
