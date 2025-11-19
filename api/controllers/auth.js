@@ -6,7 +6,7 @@ const User = require("../models/User");
 //@access   Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, telephone } = req.body;
 
     //Create user
     const user = await User.create({
@@ -14,6 +14,7 @@ exports.register = async (req, res, next) => {
       email,
       password,
       role,
+      telephone,
     });
     //Create token
     //const token=user.getSignedJwtToken();

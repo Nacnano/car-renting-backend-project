@@ -11,6 +11,8 @@ const cors = require("cors");
 
 //Route files
 const auth = require("./routes/auth");
+const carProviders = require("./routes/carProviders");
+const bookings = require("./routes/bookings");
 
 //Load env vars
 dotenv.config({ path: "./config/config.env" });
@@ -35,18 +37,13 @@ app.use(helmet());
 //Prevent XSS attacks
 app.use(xss());
 
-//Rate Limiting
-const limiter = rateLimit({
-  windowsMs: 10 * 60 * 1000, //10 mins
-  max: 5,
-});
-app.use(limiter);
-
 //Enable CORS
 app.use(cors());
 
 //Mount routers
 app.use("/api/v1/auth", auth);
+app.use("/api/v1/carproviders", carProviders);
+app.use("/api/v1/bookings", bookings);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(
