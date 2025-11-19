@@ -13,6 +13,7 @@ const cors = require("cors");
 const auth = require("./routes/auth");
 const carProviders = require("./routes/carProviders");
 const bookings = require("./routes/bookings");
+const transactions = require("./routes/transactions");
 
 //Load env vars
 dotenv.config({ path: "./config/config.env" });
@@ -44,6 +45,7 @@ app.use(cors());
 app.use("/api/v1/auth", auth);
 app.use("/api/v1/carproviders", carProviders);
 app.use("/api/v1/bookings", bookings);
+app.use("/api/v1/transactions", transactions);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(
