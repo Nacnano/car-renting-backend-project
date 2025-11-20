@@ -82,7 +82,7 @@ npm run dev
 - `GET /api/v1/auth/me` - Get current user
 - `GET /api/v1/auth/logout` - Logout user
 
-### Car Providers
+### Car Provider Endpoints
 
 - `GET /api/v1/carproviders` - Get all providers
 - `GET /api/v1/carproviders/:id` - Get single provider
@@ -90,7 +90,7 @@ npm run dev
 - `PUT /api/v1/carproviders/:id` - Update provider (Admin only)
 - `DELETE /api/v1/carproviders/:id` - Delete provider (Admin only)
 
-### Bookings
+### Bookings Endpoints
 
 - `GET /api/v1/bookings` - Get all bookings (User: own, Admin: all)
 - `GET /api/v1/bookings/:id` - Get single booking
