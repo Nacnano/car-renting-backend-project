@@ -4,6 +4,8 @@ const CarProvider = require("../models/CarProvider");
 //@route    GET /api/v1/carproviders
 //@access   Public
 exports.getCarProviders = async (req, res, next) => {
+  console.log("🔵 [CAR_PROVIDERS] GetCarProviders function called");
+  console.log("📋 [CAR_PROVIDERS] Query params:", req.query);
   try {
     let query;
 
@@ -53,6 +55,11 @@ exports.getCarProviders = async (req, res, next) => {
 
     //Executing query
     const carProviders = await query;
+    console.log(
+      "✅ [CAR_PROVIDERS] Retrieved",
+      carProviders.length,
+      "car providers"
+    );
 
     //Pagination result
     const pagination = {};
@@ -86,6 +93,10 @@ exports.getCarProviders = async (req, res, next) => {
 //@route    GET /api/v1/carproviders/:id
 //@access   Public
 exports.getCarProvider = async (req, res, next) => {
+  console.log(
+    "🔵 [CAR_PROVIDERS] GetCarProvider function called for ID:",
+    req.params.id
+  );
   try {
     const carProvider = await CarProvider.findById(req.params.id);
 
@@ -103,7 +114,10 @@ exports.getCarProvider = async (req, res, next) => {
 //@route    POST /api/v1/carproviders
 //@access   Private
 exports.createCarProvider = async (req, res, next) => {
+  console.log("🔵 [CAR_PROVIDERS] CreateCarProvider function called");
+  console.log("📝 [CAR_PROVIDERS] New provider data:", req.body);
   const carProvider = await CarProvider.create(req.body);
+  console.log("✅ [CAR_PROVIDERS] Car provider created:", carProvider._id);
   res.status(201).json({
     success: true,
     data: carProvider,
@@ -114,6 +128,11 @@ exports.createCarProvider = async (req, res, next) => {
 //@route    PUT /api/v1/carproviders/:id
 //@access   Private
 exports.updateCarProvider = async (req, res, next) => {
+  console.log(
+    "🔵 [CAR_PROVIDERS] UpdateCarProvider function called for ID:",
+    req.params.id
+  );
+  console.log("📝 [CAR_PROVIDERS] Update data:", req.body);
   try {
     const carProvider = await CarProvider.findByIdAndUpdate(
       req.params.id,
@@ -138,14 +157,23 @@ exports.updateCarProvider = async (req, res, next) => {
 //@route    DELETE /api/v1/carproviders/:id
 //@access   Private
 exports.deleteCarProvider = async (req, res, next) => {
+  console.log(
+    "🔵 [CAR_PROVIDERS] DeleteCarProvider function called for ID:",
+    req.params.id
+  );
   try {
     const carProvider = await CarProvider.findById(req.params.id);
 
     if (!carProvider) {
+      console.log(
+        "❌ [CAR_PROVIDERS] Car provider not found for deletion:",
+        req.params.id
+      );
       return res.status(400).json({ success: false });
     }
 
     carProvider.remove();
+    console.log("✅ [CAR_PROVIDERS] Car provider deleted:", req.params.id);
 
     res.status(200).json({ success: true, data: {} });
   } catch (err) {

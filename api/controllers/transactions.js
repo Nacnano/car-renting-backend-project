@@ -5,6 +5,13 @@ const User = require("../models/User");
 // @route   GET /api/v1/transactions
 // @access  Private
 exports.getTransactions = async (req, res, next) => {
+  console.log("🔵 [TRANSACTIONS] GetTransactions function called");
+  console.log(
+    "👤 [TRANSACTIONS] User role:",
+    req.user.role,
+    "| User ID:",
+    req.user.id
+  );
   try {
     let query;
 
@@ -19,6 +26,11 @@ exports.getTransactions = async (req, res, next) => {
     }
 
     const transactions = await query;
+    console.log(
+      "✅ [TRANSACTIONS] Retrieved",
+      transactions.length,
+      "transactions"
+    );
 
     res.status(200).json({
       success: true,
@@ -37,6 +49,13 @@ exports.getTransactions = async (req, res, next) => {
 // @route   POST /api/v1/transactions/deposit
 // @access  Private
 exports.deposit = async (req, res, next) => {
+  console.log("🔵 [TRANSACTIONS] Deposit function called");
+  console.log(
+    "💰 [TRANSACTIONS] Deposit amount:",
+    req.body.amount,
+    "| User:",
+    req.user.id
+  );
   try {
     const { amount } = req.body;
 
@@ -47,10 +66,15 @@ exports.deposit = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user.id);
+    console.log("💳 [TRANSACTIONS] Current balance:", user.balance);
 
     // Update balance
     user.balance += amount;
     await user.save();
+    console.log(
+      "✅ [TRANSACTIONS] Deposit successful - New balance:",
+      user.balance
+    );
 
     // Create Transaction Record
     const transaction = await Transaction.create({
@@ -74,6 +98,13 @@ exports.deposit = async (req, res, next) => {
 // @route   POST /api/v1/transactions/withdraw
 // @access  Private
 exports.withdraw = async (req, res, next) => {
+  console.log("🔵 [TRANSACTIONS] Withdraw function called");
+  console.log(
+    "💰 [TRANSACTIONS] Withdraw amount:",
+    req.body.amount,
+    "| User:",
+    req.user.id
+  );
   try {
     const { amount } = req.body;
 
@@ -84,8 +115,10 @@ exports.withdraw = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user.id);
+    console.log("💳 [TRANSACTIONS] Current balance:", user.balance);
 
     if (user.balance < amount) {
+      console.log("❌ [TRANSACTIONS] Insufficient balance for withdrawal");
       return res
         .status(400)
         .json({ success: false, message: "Insufficient balance" });
@@ -94,6 +127,10 @@ exports.withdraw = async (req, res, next) => {
     // Update balance
     user.balance -= amount;
     await user.save();
+    console.log(
+      "✅ [TRANSACTIONS] Withdrawal successful - New balance:",
+      user.balance
+    );
 
     // Create Transaction Record
     const transaction = await Transaction.create({
