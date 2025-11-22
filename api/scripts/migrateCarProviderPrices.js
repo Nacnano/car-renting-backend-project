@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const CarProvider = require("./models/CarProvider");
+const CarProvider = require("../models/CarProvider");
 
 // Load env vars
 dotenv.config({ path: "./config/config.env" });
