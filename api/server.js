@@ -22,9 +22,23 @@ connectDB();
 
 const app = express();
 
+//Enable CORS with credentials
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 //Body parser
 app.use(express.json());
-app.use(cors());
+
+//Request logging middleware
+app.use((req, res, next) => {
+  console.log(`🌐 [SERVER] ${req.method} ${req.originalUrl}`);
+  console.log("📦 [SERVER] Body:", req.body);
+  next();
+});
 
 //Cookie parser
 app.use(cookieParser());
@@ -37,9 +51,6 @@ app.use(helmet());
 
 //Prevent XSS attacks
 app.use(xss());
-
-//Enable CORS
-app.use(cors());
 
 //Mount routers
 app.use("/api/v1/auth", auth);

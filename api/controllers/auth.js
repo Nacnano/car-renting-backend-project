@@ -1,4 +1,3 @@
-const res = require("express/lib/response");
 const User = require("../models/User");
 
 //@desc     Register user

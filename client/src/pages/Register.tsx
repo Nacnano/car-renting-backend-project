@@ -16,14 +16,18 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🔵 [FRONTEND] Submitting registration:", formData);
     try {
+      console.log("📤 [FRONTEND] Sending POST to /auth/register");
       const res = await api.post("/auth/register", formData);
+      console.log("✅ [FRONTEND] Registration response:", res.data);
       const meRes = await api.get("/auth/me", {
         headers: { Authorization: `Bearer ${res.data.token}` },
       });
       login(res.data.token, meRes.data.data);
       navigate("/dashboard");
     } catch (error: unknown) {
+      console.error("❌ [FRONTEND] Registration error:", error);
       const err = error as { response?: { data?: { msg?: string } } };
       toast.error(err.response?.data?.msg || "Registration failed");
     }
