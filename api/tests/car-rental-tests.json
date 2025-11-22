@@ -1,0 +1,683 @@
+{
+  "info": {
+    "_postman_id": "car-booking-logic",
+    "name": "Car Booking Integration Tests",
+    "description": "Converted from Node.js test script",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Admin",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Initialize global timestamp for unique emails",
+              "const timestamp = Date.now();",
+              "pm.collectionVariables.set(\"timestamp\", timestamp);",
+              "console.log(\"Timestamp set to:\", timestamp);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "",
+              "pm.test(\"Admin Registered Successfully\", function () {",
+              "    pm.response.to.have.status(200); // or 201 depending on API",
+              "    pm.expect(jsonData).to.have.property(\"token\");",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set(\"adminToken\", jsonData.token);",
+              "    console.log(\"Admin Token set\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Admin User\",\n    \"email\": \"admin{{timestamp}}@test.com\",\n    \"password\": \"password123\",\n    \"telephone\": \"1234567890\",\n    \"role\": \"admin\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "2. Create Car Provider",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "",
+              "pm.test(\"Car Provider Created\", function () {",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "    pm.expect(jsonData.data).to.have.property(\"_id\");",
+              "});",
+              "",
+              "if (jsonData.data && jsonData.data._id) {",
+              "    pm.collectionVariables.set(\"carProviderId\", jsonData.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Best Cars {{timestamp}}\",\n    \"address\": \"123 Main St\",\n    \"telephone\": \"555-1234\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders"]
+        }
+      }
+    },
+    {
+      "name": "3. Register User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "",
+              "pm.test(\"User Registered Successfully\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(jsonData).to.have.property(\"token\");",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set(\"userToken\", jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Regular User\",\n    \"email\": \"user{{timestamp}}@test.com\",\n    \"password\": \"password123\",\n    \"telephone\": \"0987654321\",\n    \"role\": \"user\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "4a. Check Initial Balance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Balance should be 0\", function () {",
+              "    pm.expect(jsonData.data.balance).to.eql(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/auth/me",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "4b. Try Booking with 0 Balance",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2025-12-25\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "4c. Deposit Money",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"New Balance is 5000\", function () {",
+              "    pm.expect(jsonData.newBalance).to.eql(5000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"amount\": 5000\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/transactions/deposit",
+          "host": ["{{BASE_URL}}"],
+          "path": ["transactions", "deposit"]
+        }
+      }
+    },
+    {
+      "name": "4d. Withdraw Money",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"New Balance is 4500\", function () {",
+              "    pm.expect(jsonData.newBalance).to.eql(4500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"amount\": 500\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/transactions/withdraw",
+          "host": ["{{BASE_URL}}"],
+          "path": ["transactions", "withdraw"]
+        }
+      }
+    },
+    {
+      "name": "5a. Booking 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Booking 1 Successful\", function () {",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "if(jsonData.success) {",
+              "    pm.collectionVariables.set(\"bookingId_1\", jsonData.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2025-12-01\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "5b. Booking 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Booking 2 Successful\", function () {",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "if(jsonData.success) {",
+              "    pm.collectionVariables.set(\"bookingId_2\", jsonData.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2025-12-02\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "5c. Booking 3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Booking 3 Successful\", function () {",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "if(jsonData.success) {",
+              "    pm.collectionVariables.set(\"bookingId_3\", jsonData.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2025-12-03\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "Check Balance (Expected 1500)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Balance is 1500 after 3 bookings\", function () {",
+              "    pm.expect(jsonData.data.balance).to.eql(1500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/auth/me",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "Booking 4 (Should Fail Limit)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 400 due to limit\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "console.log(jsonData.message);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2025-12-04\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "6. User View Bookings",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"User has 3 bookings\", function () {",
+              "    pm.expect(jsonData.count).to.eql(3);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings"]
+        }
+      }
+    },
+    {
+      "name": "7. User Edit Booking 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Update Successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2026-01-01\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/bookings/{{bookingId_1}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings", "{{bookingId_1}}"]
+        }
+      }
+    },
+    {
+      "name": "8. User Delete Booking 1 (Refund)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Delete Successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/bookings/{{bookingId_1}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings", "{{bookingId_1}}"]
+        }
+      }
+    },
+    {
+      "name": "Check Balance after Refund (Expected 2500)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Balance is 2500 after refund\", function () {",
+              "    pm.expect(jsonData.data.balance).to.eql(2500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/auth/me",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "9. Transaction History",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Transaction History Count Check\", function () {",
+              "    // Deposit(1) + Withdraw(1) + Payments(3) + Refund(1) = 6",
+              "    pm.expect(jsonData.count).to.be.at.least(6);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/transactions",
+          "host": ["{{BASE_URL}}"],
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "10. Admin View All Bookings",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Admin can view bookings\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(jsonData.count).to.be.above(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/bookings",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings"]
+        }
+      }
+    },
+    {
+      "name": "11. Admin Edit User Booking (Booking 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Admin Update Successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bookingDate\": \"2026-02-02\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/bookings/{{bookingId_2}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings", "{{bookingId_2}}"]
+        }
+      }
+    },
+    {
+      "name": "12. Admin Delete User Booking (Booking 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Admin Delete Successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/bookings/{{bookingId_2}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["bookings", "{{bookingId_2}}"]
+        }
+      }
+    },
+    {
+      "name": "13. Cleanup (Delete Car Provider)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Cleanup Successful\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/carproviders/{{carProviderId}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["carproviders", "{{carProviderId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000/api/v1"
+    }
+  ]
+}
