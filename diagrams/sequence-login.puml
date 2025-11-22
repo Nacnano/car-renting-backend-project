@@ -1,0 +1,69 @@
+@startuml User Login - Sequence Diagram
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth\nController" as AuthCtrl
+participant "User\nModel" as UserModel
+database "MongoDB" as DB
+
+User -> Frontend : Enter email and password
+activate Frontend
+
+Frontend -> Frontend : Validate form inputs
+Frontend -> AuthCtrl : POST /api/v1/auth/login\n{email, password}
+activate AuthCtrl
+
+AuthCtrl -> AuthCtrl : Validate email & password\nnot empty
+
+AuthCtrl -> UserModel : findOne({email}).select('+password')
+activate UserModel
+UserModel -> DB : Query user by email
+activate DB
+DB --> UserModel : Return user with password
+deactivate DB
+UserModel --> AuthCtrl : User object with password
+deactivate UserModel
+
+alt User not found
+  AuthCtrl --> Frontend : 400 Bad Request\n{success: false, msg: "Invalid credentials"}
+  Frontend --> User : Show error message
+else User found
+  AuthCtrl -> UserModel : user.matchPassword(password)
+  activate UserModel
+  UserModel -> UserModel : Compare password\nwith bcrypt.compare()
+  UserModel --> AuthCtrl : Boolean (match result)
+  deactivate UserModel
+  
+  alt Password doesn't match
+    AuthCtrl --> Frontend : 401 Unauthorized\n{success: false, msg: "Invalid credentials"}
+    Frontend --> User : Show error message
+  else Password matches
+    AuthCtrl -> AuthCtrl : Generate JWT token\nuser.getSignedJwtToken()
+    AuthCtrl -> AuthCtrl : Create cookie options\n(httpOnly, expires in 30 days)
+    
+    AuthCtrl --> Frontend : 200 OK\n{success: true, token, _id, name, email}
+    deactivate AuthCtrl
+    
+    Frontend -> Frontend : Store token in\nlocal storage
+    Frontend -> Frontend : Update AuthContext\nwith user data
+    Frontend --> User : Redirect to Dashboard\nShow welcome message
+  end
+end
+
+deactivate Frontend
+
+note right of AuthCtrl
+  Password is never returned
+  in plain text. Only hashed
+  password is compared using
+  bcrypt.compare()
+end note
+
+note right of Frontend
+  Token is stored in localStorage
+  and sent as Bearer token in
+  Authorization header for all
+  subsequent API requests
+end note
+
+@enduml

@@ -1,0 +1,115 @@
+@startuml Create Booking with Payment - Sequence Diagram
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth\nMiddleware" as AuthMW
+participant "Booking\nController" as BookingCtrl
+participant "CarProvider\nModel" as ProviderModel
+participant "User\nModel" as UserModel
+participant "Booking\nModel" as BookingModel
+participant "Transaction\nModel" as TransModel
+database "MongoDB" as DB
+
+User -> Frontend : Select car provider\nand booking date
+activate Frontend
+
+Frontend -> BookingCtrl : POST /api/v1/carproviders/:id/bookings\nHeader: Bearer {token}\n{bookingDate}
+activate BookingCtrl
+
+BookingCtrl -> AuthMW : Verify JWT token
+activate AuthMW
+AuthMW -> AuthMW : Decode token
+AuthMW -> UserModel : Find user by ID
+activate UserModel
+UserModel -> DB : Query user
+DB --> UserModel : User data
+UserModel --> AuthMW : User object
+deactivate UserModel
+AuthMW --> BookingCtrl : req.user = user
+deactivate AuthMW
+
+BookingCtrl -> ProviderModel : findById(carProviderId)
+activate ProviderModel
+ProviderModel -> DB : Query car provider
+DB --> ProviderModel : Provider data
+ProviderModel --> BookingCtrl : CarProvider object
+deactivate ProviderModel
+
+alt Car Provider not found
+  BookingCtrl --> Frontend : 404 Not Found\n{success: false, msg: "No car provider..."}
+  Frontend --> User : Show error message
+else Car Provider exists
+  BookingCtrl -> BookingModel : find({user: userId})
+  activate BookingModel
+  BookingModel -> DB : Count user's bookings
+  DB --> BookingModel : Existing bookings
+  BookingModel --> BookingCtrl : Array of bookings
+  deactivate BookingModel
+  
+  alt User has 3+ bookings AND not admin
+    BookingCtrl --> Frontend : 400 Bad Request\n{success: false, msg: "Already made 3 bookings"}
+    Frontend --> User : Show booking limit error
+  else Booking limit OK
+    BookingCtrl -> UserModel : findById(userId)
+    activate UserModel
+    UserModel -> DB : Query user balance
+    DB --> UserModel : User data
+    UserModel --> BookingCtrl : User with balance
+    deactivate UserModel
+    
+    BookingCtrl -> BookingCtrl : Get booking price\nfrom carProvider.price
+    
+    alt Insufficient balance
+      BookingCtrl --> Frontend : 400 Bad Request\n{success: false, msg: "Insufficient balance..."}
+      Frontend --> User : Show insufficient balance\nSuggest deposit
+    else Balance sufficient
+      BookingCtrl -> UserModel : Deduct balance\nuser.balance -= price
+      activate UserModel
+      UserModel -> DB : Update user balance
+      DB --> UserModel : Updated
+      UserModel --> BookingCtrl : Success
+      deactivate UserModel
+      
+      BookingCtrl -> BookingModel : create(booking data)
+      activate BookingModel
+      BookingModel -> DB : Save booking with price
+      DB --> BookingModel : Booking saved
+      BookingModel --> BookingCtrl : New booking object
+      deactivate BookingModel
+      
+      BookingCtrl -> TransModel : create(transaction data)
+      activate TransModel
+      TransModel -> DB : Save transaction\n{user, amount: -price,\ntype: "payment", booking}
+      DB --> TransModel : Transaction saved
+      TransModel --> BookingCtrl : Transaction object
+      deactivate TransModel
+      
+      BookingCtrl --> Frontend : 200 OK\n{success: true, data: booking,\nmsg: "Booking created. X deducted"}
+      deactivate BookingCtrl
+      
+      Frontend -> Frontend : Update bookings list
+      Frontend -> Frontend : Update balance display
+      Frontend --> User : Show success message\nDisplay new booking
+    end
+  end
+end
+
+deactivate Frontend
+
+note right of BookingCtrl
+  1. Verify user and provider exist
+  2. Check booking limit (3 for users)
+  3. Check balance >= price
+  4. Deduct payment from balance
+  5. Create booking with price
+  6. Record payment transaction
+end note
+
+note right of TransModel
+  Transaction records payment
+  with negative amount and
+  references the booking ID
+  for audit trail
+end note
+
+@enduml

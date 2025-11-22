@@ -1,0 +1,102 @@
+@startuml Withdraw Money - Sequence Diagram
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth\nMiddleware" as AuthMW
+participant "Transaction\nController" as TransCtrl
+participant "User\nModel" as UserModel
+participant "Transaction\nModel" as TransModel
+database "MongoDB" as DB
+
+User -> Frontend : Navigate to Wallet page
+activate Frontend
+Frontend -> Frontend : Display current balance
+
+User -> Frontend : Enter withdrawal amount\nClick "Withdraw" button
+Frontend -> Frontend : Validate amount > 0
+
+Frontend -> TransCtrl : POST /api/v1/transactions/withdraw\nHeader: Bearer {token}\n{amount: 500}
+activate TransCtrl
+
+TransCtrl -> AuthMW : Verify JWT token
+activate AuthMW
+AuthMW -> AuthMW : Decode token
+AuthMW -> UserModel : Find user by ID
+activate UserModel
+UserModel -> DB : Query user
+DB --> UserModel : User data
+UserModel --> AuthMW : User object
+deactivate UserModel
+AuthMW --> TransCtrl : req.user = user
+deactivate AuthMW
+
+TransCtrl -> TransCtrl : Validate amount\namount > 0
+
+alt Invalid amount
+  TransCtrl --> Frontend : 400 Bad Request\n{success: false, msg: "Please provide positive amount"}
+  Frontend --> User : Show error message
+else Valid amount
+  TransCtrl -> UserModel : findById(userId)
+  activate UserModel
+  UserModel -> DB : Query user
+  DB --> UserModel : User data with balance
+  UserModel --> TransCtrl : User object
+  deactivate UserModel
+  
+  TransCtrl -> TransCtrl : Check balance\nuser.balance >= amount
+  
+  alt Insufficient balance
+    TransCtrl --> Frontend : 400 Bad Request\n{success: false, msg: "Insufficient balance"}
+    Frontend --> User : Show error message\n"Not enough funds"
+  else Sufficient balance
+    TransCtrl -> UserModel : Update balance\nuser.balance -= amount
+    activate UserModel
+    UserModel -> DB : Save updated balance
+    DB --> UserModel : Updated
+    UserModel --> TransCtrl : Success
+    deactivate UserModel
+    
+    TransCtrl -> TransModel : create(transaction)
+    activate TransModel
+    TransModel -> DB : Save transaction\n{user, amount, type: "withdraw"}
+    DB --> TransModel : Transaction saved
+    TransModel --> TransCtrl : Transaction object
+    deactivate TransModel
+    
+    TransCtrl --> Frontend : 200 OK\n{success: true, data: transaction,\nnewBalance: updatedBalance}
+    deactivate TransCtrl
+    
+    Frontend -> Frontend : Update balance display
+    Frontend -> Frontend : Add transaction to history
+    Frontend --> User : Show success message\n"Withdrew X Baht"
+  end
+end
+
+deactivate Frontend
+
+note right of TransCtrl
+  Withdrawal Validation:
+  1. Amount must be positive
+  2. User must have sufficient balance
+  3. Balance check prevents negative
+  
+  In production, would integrate
+  with bank transfer or payment
+  gateway for real withdrawals.
+end note
+
+note right of TransModel
+  Transaction record includes:
+  - User ID reference
+  - Positive amount (withdraw value)
+  - Type: "withdraw"
+  - Timestamp (createdAt)
+end note
+
+note left of User
+  User cannot withdraw more
+  than their current balance.
+  System prevents overdraft.
+end note
+
+@enduml

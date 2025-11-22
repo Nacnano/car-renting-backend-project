@@ -1,0 +1,104 @@
+@startuml Car Renting System - Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User" as User
+actor "Admin" as Admin
+actor "System" as System
+
+rectangle "Car Renting System" {
+  ' Authentication Use Cases
+  usecase "Register" as UC1
+  usecase "Login" as UC2
+  usecase "Logout" as UC3
+  usecase "View Profile" as UC4
+  
+  ' Car Provider Use Cases
+  usecase "View Car Providers" as UC5
+  usecase "View Car Provider Details" as UC6
+  usecase "Create Car Provider" as UC7
+  usecase "Update Car Provider" as UC8
+  usecase "Delete Car Provider" as UC9
+  
+  ' Booking Use Cases
+  usecase "View My Bookings" as UC10
+  usecase "View All Bookings" as UC11
+  usecase "Create Booking" as UC12
+  usecase "Update Booking" as UC13
+  usecase "Delete Booking" as UC14
+  
+  ' Wallet Use Cases
+  usecase "View Balance" as UC15
+  usecase "Deposit Money" as UC16
+  usecase "Withdraw Money" as UC17
+  usecase "View Transaction History" as UC18
+  
+  ' System Use Cases
+  usecase "Process Payment" as UC19
+  usecase "Process Refund" as UC20
+  usecase "Validate Balance" as UC21
+  usecase "Create Transaction Record" as UC22
+  usecase "Check Booking Limit" as UC23
+}
+
+' User connections
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC10
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+
+' Admin connections (Admin inherits from User)
+Admin --|> User
+Admin --> UC7
+Admin --> UC8
+Admin --> UC9
+Admin --> UC11
+
+' System connections
+UC12 ..> UC19 : <<include>>
+UC12 ..> UC21 : <<include>>
+UC12 ..> UC22 : <<include>>
+UC12 ..> UC23 : <<include>>
+
+UC14 ..> UC20 : <<include>>
+UC14 ..> UC22 : <<include>>
+
+UC16 ..> UC22 : <<include>>
+UC17 ..> UC22 : <<include>>
+UC17 ..> UC21 : <<include>>
+
+UC19 --> System
+UC20 --> System
+UC21 --> System
+UC22 --> System
+UC23 --> System
+
+note right of UC12
+  User can create up to 
+  3 bookings (Admin unlimited)
+end note
+
+note right of UC19
+  Automatically deducts 
+  car provider's price 
+  from user balance
+end note
+
+note right of UC20
+  Automatically refunds 
+  booking price when 
+  booking is deleted
+end note
+
+@enduml

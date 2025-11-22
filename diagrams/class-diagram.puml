@@ -1,0 +1,149 @@
+@startuml Car Renting System - Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+
+class User {
+  - _id : ObjectId
+  - name : String
+  - email : String {unique}
+  - telephone : String
+  - role : String {user, admin}
+  - password : String {hashed}
+  - balance : Number
+  - resetPasswordToken : String
+  - resetPasswordExpire : Date
+  - createdAt : Date
+  __
+  + getSignedJwtToken() : String
+  + matchPassword(enteredPassword: String) : Boolean
+  + save() : Promise<User>
+  + findById(id: String) : Promise<User>
+  + findOne(query: Object) : Promise<User>
+}
+
+class CarProvider {
+  - _id : ObjectId
+  - name : String {unique}
+  - address : String
+  - telephone : String
+  - price : Number {default: 1000}
+  - createdAt : Date
+  __
+  + save() : Promise<CarProvider>
+  + remove() : Promise<void>
+  + findById(id: String) : Promise<CarProvider>
+  + find(query: Object) : Promise<CarProvider[]>
+  + populate(field: String) : Promise<CarProvider>
+}
+
+class Booking {
+  - _id : ObjectId
+  - bookingDate : Date
+  - user : ObjectId {ref: User}
+  - carProvider : ObjectId {ref: CarProvider}
+  - price : Number
+  - createdAt : Date
+  __
+  + save() : Promise<Booking>
+  + remove() : Promise<void>
+  + findById(id: String) : Promise<Booking>
+  + find(query: Object) : Promise<Booking[]>
+  + populate(field: String) : Promise<Booking>
+}
+
+class Transaction {
+  - _id : ObjectId
+  - user : ObjectId {ref: User}
+  - amount : Number
+  - type : String {deposit, withdraw, payment, refund}
+  - booking : ObjectId {ref: Booking, optional}
+  - createdAt : Date
+  __
+  + save() : Promise<Transaction>
+  + findById(id: String) : Promise<Transaction>
+  + find(query: Object) : Promise<Transaction[]>
+  + populate(field: String) : Promise<Transaction>
+}
+
+' Controllers
+class AuthController {
+  + register(req, res, next) : Promise<void>
+  + login(req, res, next) : Promise<void>
+  + logout(req, res, next) : Promise<void>
+  + getMe(req, res, next) : Promise<void>
+  - sendTokenResponse(user, statusCode, res) : void
+}
+
+class BookingController {
+  + getBookings(req, res, next) : Promise<void>
+  + getBooking(req, res, next) : Promise<void>
+  + addBooking(req, res, next) : Promise<void>
+  + updateBooking(req, res, next) : Promise<void>
+  + deleteBooking(req, res, next) : Promise<void>
+}
+
+class CarProviderController {
+  + getCarProviders(req, res, next) : Promise<void>
+  + getCarProvider(req, res, next) : Promise<void>
+  + createCarProvider(req, res, next) : Promise<void>
+  + updateCarProvider(req, res, next) : Promise<void>
+  + deleteCarProvider(req, res, next) : Promise<void>
+}
+
+class TransactionController {
+  + getTransactions(req, res, next) : Promise<void>
+  + deposit(req, res, next) : Promise<void>
+  + withdraw(req, res, next) : Promise<void>
+}
+
+' Middleware
+class AuthMiddleware {
+  + protect(req, res, next) : Promise<void>
+  + authorize(...roles: String[]) : Function
+}
+
+' Relationships between Models
+User "1" -- "0..*" Booking : creates >
+User "1" -- "0..*" Transaction : has >
+CarProvider "1" -- "0..*" Booking : receives >
+Booking "1" -- "0..1" Transaction : generates >
+
+' Controller-Model relationships
+AuthController ..> User : uses
+BookingController ..> Booking : uses
+BookingController ..> User : uses
+BookingController ..> CarProvider : uses
+BookingController ..> Transaction : uses
+CarProviderController ..> CarProvider : uses
+TransactionController ..> Transaction : uses
+TransactionController ..> User : uses
+
+' Middleware relationships
+AuthMiddleware ..> User : validates
+
+note right of User
+  Default balance is 0
+  Password is hashed using bcrypt
+  JWT token expires in 30 days
+end note
+
+note right of Booking
+  Stores price at booking time
+  User limited to 3 bookings
+  Admin can create unlimited bookings
+end note
+
+note right of Transaction
+  Types: deposit, withdraw, 
+  payment, refund
+  Tracks all financial operations
+end note
+
+note bottom of CarProvider
+  Each provider sets own price
+  Deleting provider cascades 
+  to delete all its bookings
+end note
+
+@enduml

@@ -1,0 +1,116 @@
+@startuml Delete Booking with Refund - Sequence Diagram
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth\nMiddleware" as AuthMW
+participant "Booking\nController" as BookingCtrl
+participant "Booking\nModel" as BookingModel
+participant "User\nModel" as UserModel
+participant "Transaction\nModel" as TransModel
+database "MongoDB" as DB
+
+User -> Frontend : Click delete booking button
+activate Frontend
+
+Frontend -> Frontend : Show confirmation dialog
+User -> Frontend : Confirm deletion
+
+Frontend -> BookingCtrl : DELETE /api/v1/bookings/:id\nHeader: Bearer {token}
+activate BookingCtrl
+
+BookingCtrl -> AuthMW : Verify JWT token
+activate AuthMW
+AuthMW -> AuthMW : Decode token
+AuthMW -> UserModel : Find user by ID
+activate UserModel
+UserModel -> DB : Query user
+DB --> UserModel : User data
+UserModel --> AuthMW : User object
+deactivate UserModel
+AuthMW --> BookingCtrl : req.user = user
+deactivate AuthMW
+
+BookingCtrl -> BookingModel : findById(bookingId)
+activate BookingModel
+BookingModel -> DB : Query booking
+DB --> BookingModel : Booking data
+BookingModel --> BookingCtrl : Booking object
+deactivate BookingModel
+
+alt Booking not found
+  BookingCtrl --> Frontend : 404 Not Found\n{success: false, msg: "No booking..."}
+  Frontend --> User : Show error message
+else Booking exists
+  BookingCtrl -> BookingCtrl : Check ownership\nbooking.user == req.user.id\nOR req.user.role == "admin"
+  
+  alt User not authorized
+    BookingCtrl --> Frontend : 401 Unauthorized\n{success: false, msg: "Not authorized..."}
+    Frontend --> User : Show unauthorized error
+  else User authorized
+    BookingCtrl -> BookingCtrl : Get refund amount\nrefundAmount = booking.price
+    
+    BookingCtrl -> UserModel : findById(booking.user)
+    activate UserModel
+    UserModel -> DB : Query booking owner
+    DB --> UserModel : User data
+    UserModel --> BookingCtrl : User object
+    deactivate UserModel
+    
+    BookingCtrl -> UserModel : Add refund to balance\nuser.balance += refundAmount
+    activate UserModel
+    UserModel -> DB : Update user balance
+    DB --> UserModel : Updated
+    UserModel --> BookingCtrl : Success
+    deactivate UserModel
+    
+    BookingCtrl -> TransModel : create(refund transaction)
+    activate TransModel
+    TransModel -> DB : Save transaction\n{user, amount: refundAmount,\ntype: "refund", booking}
+    DB --> TransModel : Transaction saved
+    TransModel --> BookingCtrl : Transaction object
+    deactivate TransModel
+    
+    BookingCtrl -> BookingModel : booking.remove()
+    activate BookingModel
+    BookingModel -> DB : Delete booking
+    DB --> BookingModel : Deleted
+    BookingModel --> BookingCtrl : Success
+    deactivate BookingModel
+    
+    BookingCtrl --> Frontend : 200 OK\n{success: true, data: {},\nmsg: "Booking deleted and X refunded"}
+    deactivate BookingCtrl
+    
+    Frontend -> Frontend : Remove booking from list
+    Frontend -> Frontend : Update balance display
+    Frontend --> User : Show success message\nDisplay refund amount
+  end
+end
+
+deactivate Frontend
+
+note right of BookingCtrl
+  Refund Process:
+  1. Verify booking exists
+  2. Check authorization
+  3. Get stored booking price
+  4. Add refund to user balance
+  5. Record refund transaction
+  6. Delete booking record
+end note
+
+note right of TransModel
+  Refund transaction has:
+  - Positive amount (refund)
+  - Type: "refund"
+  - References deleted booking
+  - Maintains audit trail
+end note
+
+note left of User
+  User receives full refund
+  of the original booking price,
+  even if car provider's current
+  price has changed
+end note
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml User Registration - Sequence Diagram
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth\nController" as AuthCtrl
+participant "User\nModel" as UserModel
+database "MongoDB" as DB
+
+User -> Frontend : Enter registration details\n(name, email, password, telephone)
+activate Frontend
+
+Frontend -> Frontend : Validate form inputs
+Frontend -> AuthCtrl : POST /api/v1/auth/register\n{name, email, password, telephone, role}
+activate AuthCtrl
+
+AuthCtrl -> UserModel : Create user object
+activate UserModel
+
+UserModel -> UserModel : Hash password\n(bcrypt with salt=10)
+UserModel -> DB : Save user to database
+activate DB
+DB --> UserModel : User saved
+deactivate DB
+
+UserModel --> AuthCtrl : Return user object
+deactivate UserModel
+
+AuthCtrl -> AuthCtrl : Generate JWT token\nuser.getSignedJwtToken()
+AuthCtrl -> AuthCtrl : Prepare response with\nuser info and token
+
+AuthCtrl --> Frontend : 200 OK\n{success: true, token, _id, name, email}
+deactivate AuthCtrl
+
+Frontend -> Frontend : Store token in\nlocal storage/context
+Frontend -> Frontend : Set authenticated state
+Frontend --> User : Redirect to Dashboard\nShow success message
+
+deactivate Frontend
+
+note right of UserModel
+  Password is hashed using bcrypt
+  before saving to database.
+  Original password is never stored.
+end note
+
+note right of AuthCtrl
+  JWT token contains user ID
+  and expires in 30 days.
+  Token is used for subsequent
+  authenticated requests.
+end note
+
+@enduml
