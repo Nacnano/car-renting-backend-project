@@ -12,6 +12,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Bookings from "./pages/Bookings";
 import Wallet from "./pages/Wallet";
+import CarProviders from "./pages/CarProviders";
 
 const PrivateRoute = ({ children }: { children: React.ReactElement }) => {
   const { user, loading } = useAuth();
@@ -50,6 +51,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Wallet />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/carproviders"
+              element={
+                <PrivateRoute>
+                  <CarProviders />
                 </PrivateRoute>
               }
             />

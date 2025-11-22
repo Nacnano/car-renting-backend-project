@@ -60,7 +60,7 @@ exports.login = async (req, res, next) => {
     }
 
     //Check if password matches
-    const isMatch = user.password === password;
+    const isMatch = await user.matchPassword(password);
     console.log("🔐 [AUTH] Password match:", isMatch);
 
     if (!isMatch) {
@@ -132,7 +132,10 @@ exports.getMe = async (req, res, next) => {
 //@route    GET /api/v1/auth/logout
 //@access   Private
 exports.logout = async (req, res, next) => {
-  console.log("🔵 [AUTH] Logout function called for user:", req.user.id);
+  console.log(
+    "🔵 [AUTH] Logout function called for user:",
+    req.user?.id || "unknown"
+  );
   res.cookie("token", "none", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,

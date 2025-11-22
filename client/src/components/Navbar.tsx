@@ -13,16 +13,26 @@ export default function Navbar() {
         <div className="space-x-4">
           {user ? (
             <>
-              <span className="font-medium">Balance: {user.balance}</span>
+              <span className="font-medium">
+                {user.role === "admin" && "👑 Admin | "}Balance: {user.balance}
+              </span>
               <Link to="/dashboard" className="hover:text-blue-200">
                 Providers
               </Link>
               <Link to="/bookings" className="hover:text-blue-200">
-                My Bookings
+                {user.role === "admin" ? "All Bookings" : "My Bookings"}
               </Link>
               <Link to="/wallet" className="hover:text-blue-200">
                 Wallet
               </Link>
+              {user.role === "admin" && (
+                <Link
+                  to="/carproviders"
+                  className="hover:text-blue-200 font-semibold"
+                >
+                  Manage Providers
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="bg-red-500 px-3 py-1 rounded hover:bg-red-600"

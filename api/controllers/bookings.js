@@ -24,15 +24,25 @@ exports.getBookings = async (req, res, next) => {
   } else {
     //If you are an admin, you can see all!
     if (req.params.carProviderId) {
-      query = Booking.find({ carProvider: req.params.carProviderId }).populate({
-        path: "carProvider",
-        select: "name address telephone",
-      });
+      query = Booking.find({ carProvider: req.params.carProviderId })
+        .populate({
+          path: "carProvider",
+          select: "name address telephone",
+        })
+        .populate({
+          path: "user",
+          select: "name email telephone",
+        });
     } else {
-      query = Booking.find().populate({
-        path: "carProvider",
-        select: "name address telephone",
-      });
+      query = Booking.find()
+        .populate({
+          path: "carProvider",
+          select: "name address telephone",
+        })
+        .populate({
+          path: "user",
+          select: "name email telephone",
+        });
     }
   }
 
