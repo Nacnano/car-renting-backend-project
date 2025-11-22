@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 interface Booking {
   _id: string;
   bookingDate: string;
+  price: number;
   user: {
     _id: string;
     name: string;
@@ -61,21 +62,22 @@ export default function Bookings() {
     setEditDate("");
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, price: number = 1000) => {
     const confirmMessage =
       user?.role === "admin"
         ? "Are you sure you want to delete this booking?"
-        : "Are you sure? You will be refunded 1000.";
+        : `Are you sure? You will be refunded \u0e3f${price}.`;
 
     if (!confirm(confirmMessage)) return;
 
     try {
-      await api.delete(`/bookings/${id}`);
-      const refundMessage =
-        user?.role === "admin"
+      const response = await api.delete(`/bookings/${id}`);
+      const message =
+        response.data?.message ||
+        (user?.role === "admin"
           ? "Booking deleted successfully"
-          : "Booking cancelled. Refunded 1000.";
-      toast.success(refundMessage);
+          : `Booking cancelled. Refunded \u0e3f${price}.`);
+      toast.success(message);
       setBookings(bookings.filter((b) => b._id !== id));
       refreshUser();
     } catch (error: any) {
@@ -147,6 +149,9 @@ export default function Bookings() {
                   <p>
                     Date: {new Date(booking.bookingDate).toLocaleDateString()}
                   </p>
+                  <p className="text-green-600 font-semibold">
+                    Price: ฿{booking.price || 1000}
+                  </p>
                   {user?.role === "admin" && booking.user && (
                     <p className="text-sm text-gray-600 mt-1">
                       User: {booking.user.name} ({booking.user.email})
@@ -163,7 +168,7 @@ export default function Bookings() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleDelete(booking._id)}
+                    onClick={() => handleDelete(booking._id, booking.price)}
                     className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
                   >
                     {user?.role === "admin" ? "Delete" : "Cancel"}

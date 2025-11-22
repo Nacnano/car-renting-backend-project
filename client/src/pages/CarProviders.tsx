@@ -9,6 +9,7 @@ interface CarProvider {
   name: string;
   address: string;
   telephone: string;
+  price: number;
 }
 
 export default function CarProviders() {
@@ -19,6 +20,7 @@ export default function CarProviders() {
     name: "",
     address: "",
     telephone: "",
+    price: 1000,
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -52,7 +54,7 @@ export default function CarProviders() {
       await api.post("/carproviders", formData);
       toast.success("Car provider added successfully");
       setShowAddForm(false);
-      setFormData({ name: "", address: "", telephone: "" });
+      setFormData({ name: "", address: "", telephone: "", price: 1000 });
       loadProviders();
     } catch (error: any) {
       toast.error(
@@ -67,6 +69,7 @@ export default function CarProviders() {
       name: provider.name,
       address: provider.address,
       telephone: provider.telephone,
+      price: provider.price || 1000,
     });
   };
 
@@ -75,7 +78,7 @@ export default function CarProviders() {
       await api.put(`/carproviders/${id}`, formData);
       toast.success("Car provider updated successfully");
       setEditingId(null);
-      setFormData({ name: "", address: "", telephone: "" });
+      setFormData({ name: "", address: "", telephone: "", price: 1000 });
       loadProviders();
     } catch (error: any) {
       toast.error(
@@ -86,7 +89,7 @@ export default function CarProviders() {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setFormData({ name: "", address: "", telephone: "" });
+    setFormData({ name: "", address: "", telephone: "", price: 1000 });
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -170,6 +173,21 @@ export default function CarProviders() {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Price (฿) *
+              </label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: Number(e.target.value) })
+                }
+                className="w-full border rounded px-3 py-2"
+                min="0"
+                required
+              />
+            </div>
             <button
               type="submit"
               className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
@@ -233,6 +251,24 @@ export default function CarProviders() {
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Price (฿) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        price: Number(e.target.value),
+                      })
+                    }
+                    className="w-full border rounded px-3 py-2"
+                    min="0"
+                    required
+                  />
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleSaveEdit(provider._id)}
@@ -255,6 +291,9 @@ export default function CarProviders() {
                   <h3 className="font-bold text-lg">{provider.name}</h3>
                   <p className="text-gray-600">📍 {provider.address}</p>
                   <p className="text-gray-600">📞 {provider.telephone}</p>
+                  <p className="text-green-600 font-semibold">
+                    💰 ฿{provider.price || 1000}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button

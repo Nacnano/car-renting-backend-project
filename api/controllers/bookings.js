@@ -139,37 +139,39 @@ exports.addBooking = async (req, res, next) => {
     }
 
     // --- PAYMENT LOGIC START ---
-    const COST_PER_BOOKING = 1000; // Mock price
+    const bookingPrice = carProvider.price || 1000; // Use provider's price
     const user = await User.findById(req.user.id);
     console.log(
       "💰 [BOOKINGS] Payment check - User balance:",
       user.balance,
       "| Cost:",
-      COST_PER_BOOKING
+      bookingPrice
     );
 
-    if (user.balance < COST_PER_BOOKING) {
+    if (user.balance < bookingPrice) {
       console.log("❌ [BOOKINGS] Insufficient balance");
 
       return res.status(400).json({
         success: false,
-        message: `Insufficient balance. You need ${COST_PER_BOOKING} but have ${user.balance}. Please deposit money first.`,
+        message: `Insufficient balance. You need ${bookingPrice} but have ${user.balance}. Please deposit money first.`,
       });
     }
 
     // Deduct money
-    user.balance -= COST_PER_BOOKING;
+    user.balance -= bookingPrice;
     await user.save();
     console.log("💳 [BOOKINGS] Payment processed - New balance:", user.balance);
     // --- PAYMENT LOGIC END ---
 
+    // Add price to booking data
+    req.body.price = bookingPrice;
     const booking = await Booking.create(req.body);
     console.log("✅ [BOOKINGS] Booking created:", booking._id);
 
     // --- TRANSACTION RECORD START ---
     await Transaction.create({
       user: req.user.id,
-      amount: -COST_PER_BOOKING,
+      amount: -bookingPrice,
       type: "payment",
       booking: booking._id,
     });
@@ -179,7 +181,7 @@ exports.addBooking = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: booking,
-      message: `Booking created. ${COST_PER_BOOKING} deducted from wallet.`,
+      message: `Booking created. ${bookingPrice} deducted from wallet.`,
     });
   } catch (error) {
     console.log(error);
@@ -268,17 +270,17 @@ exports.deleteBooking = async (req, res, next) => {
     }
 
     // --- REFUND LOGIC START ---
-    const REFUND_AMOUNT = 1000; // Mock price
+    const refundAmount = booking.price || 1000; // Use booking's stored price
     const user = await User.findById(booking.user); // Refund to the booking owner
     console.log(
       "💰 [BOOKINGS] Processing refund of",
-      REFUND_AMOUNT,
+      refundAmount,
       "to user:",
       booking.user
     );
 
     if (user) {
-      user.balance += REFUND_AMOUNT;
+      user.balance += refundAmount;
       await user.save();
       console.log(
         "💳 [BOOKINGS] Refund processed - New balance:",
@@ -287,7 +289,7 @@ exports.deleteBooking = async (req, res, next) => {
 
       await Transaction.create({
         user: user._id,
-        amount: REFUND_AMOUNT,
+        amount: refundAmount,
         type: "refund",
         booking: booking._id,
       });
@@ -301,7 +303,7 @@ exports.deleteBooking = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {},
-      message: "Booking deleted and refunded",
+      message: `Booking deleted and ${refundAmount} refunded`,
     });
   } catch (error) {
     console.log(error);

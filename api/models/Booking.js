@@ -15,6 +15,11 @@ const BookingSchema = new mongoose.Schema({
     ref: "CarProvider",
     required: true,
   },
+  price: {
+    type: Number,
+    required: [true, "Please add a price"],
+    min: [0, "Price cannot be negative"],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

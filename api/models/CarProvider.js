@@ -17,6 +17,12 @@ const CarProviderSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please add a telephone number"],
     },
+    price: {
+      type: Number,
+      required: [true, "Please add a price"],
+      default: 1000,
+      min: [0, "Price cannot be negative"],
+    },
   },
   {
     toJSON: { virtuals: true },

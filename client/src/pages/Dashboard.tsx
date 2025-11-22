@@ -8,6 +8,7 @@ interface CarProvider {
   name: string;
   address: string;
   telephone: string;
+  price: number;
 }
 
 export default function Dashboard() {
@@ -27,7 +28,7 @@ export default function Dashboard() {
     void fetchProviders();
   }, []);
 
-  const handleBook = async (providerId: string) => {
+  const handleBook = async (providerId: string, price: number) => {
     const date = prompt("Enter booking date (YYYY-MM-DD):", "2025-12-25");
     if (!date) return;
 
@@ -35,7 +36,7 @@ export default function Dashboard() {
       await api.post(`/carproviders/${providerId}/bookings`, {
         bookingDate: date,
       });
-      toast.success("Booking created! 1000 deducted.");
+      toast.success(`Booking created! ฿${price} deducted.`);
       refreshUser();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -55,11 +56,14 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold">{provider.name}</h2>
             <p className="text-gray-600">{provider.address}</p>
             <p className="text-gray-600">{provider.telephone}</p>
+            <p className="text-green-600 font-semibold mt-2">
+              Price: ฿{provider.price || 1000}
+            </p>
             <button
-              onClick={() => handleBook(provider._id)}
+              onClick={() => handleBook(provider._id, provider.price || 1000)}
               className="mt-4 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
             >
-              Book (1000)
+              Book (฿{provider.price || 1000})
             </button>
           </div>
         ))}
