@@ -1,113 +1,41 @@
-# Rental Car Booking System
+# API Service
 
-A backend system for managing car rental bookings, built with Node.js, Express, and MongoDB.
-
-## Features
-
-### User Management
-
-- **Register:** Users can register with name, email, telephone, and password.
-- **Login:** Secure login using JWT (JSON Web Tokens).
-- **Roles:**
-  - **User:** Can book cars, view/edit/delete their own bookings.
-  - **Admin:** Can manage car providers and view/edit/delete any booking.
-
-### Car Providers
-
-- Manage rental car providers (Name, Address, Telephone).
-- **Public:** View all car providers.
-- **Admin:** Create, Update, and Delete car providers.
-
-### Bookings
-
-- **Booking Limit:** Regular users can make up to **3 bookings**.
-- **Create:** Users can book a car from a specific provider for a specific date.
-- **View:** Users see their own bookings; Admins see all bookings.
-- **Update/Delete:** Users manage their own; Admins manage all.
-
-### Wallet & Transactions
-
-- **Closed-Loop Wallet:** Users have a balance managed within the system.
-- **Cost:** Each booking costs **1000** units.
-- **Deposit/Withdraw:** Users can deposit or withdraw funds to adjust their balance.
-- **Payments:** Booking creation automatically deducts 1000 from the user's balance.
-- **Refunds:** Canceling a booking automatically refunds 1000 to the user's balance.
-- **History:** Users can view their transaction history (Deposits, Withdrawals, Payments, Refunds).
-
-## Tech Stack
-
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Database:** MongoDB (Mongoose)
-- **Authentication:** JWT & Cookies
-
-## Getting Started
+## How to Run
 
 ### Prerequisites
 
 - Node.js installed
 - MongoDB connection string
 
-### Installation
+### Steps
 
-1. Clone the repository.
-2. Navigate to the `api` directory:
-   `ash
-cd api
-`
-3. Install dependencies:
-   `ash
-npm install
-`
-4. Create a `config/config.env` file (use `config/config.env.example` as a template) and add your MongoDB URI:
-   `env
-PORT=5000
-NODE_ENV=development
-MONGO_URI=<your_mongodb_uri>
-JWT_SECRET=<your_secret>
-JWT_EXPIRE=30d
-JWT_COOKIE_EXPIRE=30
-`
-5. Run the server:
-   `ash
-npm run dev
-`
+1. Navigate to the `api` directory:
 
-## API Endpoints
+   ```bash
+   cd api
+   ```
 
-### Auth
+2. Install dependencies:
 
-- `POST /api/v1/auth/register` - Register a new user
-- `POST /api/v1/auth/login` - Login user
-- `GET /api/v1/auth/me` - Get current user
-- `GET /api/v1/auth/logout` - Logout user
+   ```bash
+   npm install
+   ```
 
-### Car Provider Endpoints
+3. Create a `config/config.env` file (use `config/config.env.example` as a template) and add your configuration:
 
-- `GET /api/v1/carproviders` - Get all providers
-- `GET /api/v1/carproviders/:id` - Get single provider
-- `POST /api/v1/carproviders` - Create provider (Admin only)
-- `PUT /api/v1/carproviders/:id` - Update provider (Admin only)
-- `DELETE /api/v1/carproviders/:id` - Delete provider (Admin only)
+   ```env
+   PORT=5000
+   NODE_ENV=development
+   MONGO_URI=<your_mongodb_uri>
+   JWT_SECRET=<your_secret>
+   JWT_EXPIRE=30d
+   JWT_COOKIE_EXPIRE=30
+   ```
 
-### Bookings Endpoints
+4. Run the server:
 
-- `GET /api/v1/bookings` - Get all bookings (User: own, Admin: all)
-- `GET /api/v1/bookings/:id` - Get single booking
-- `POST /api/v1/carproviders/:carProviderId/bookings` - Create a booking
-- `PUT /api/v1/bookings/:id` - Update booking
-- `DELETE /api/v1/bookings/:id` - Delete booking
+   ```bash
+   npm run dev
+   ```
 
-### Transactions
-
-- `GET /api/v1/transactions` - Get transaction history
-- `POST /api/v1/transactions/deposit` - Deposit money
-- `POST /api/v1/transactions/withdraw` - Withdraw money
-
-## Testing
-
-To run the comprehensive test suite (including wallet scenarios):
-
-```bash
-node test_api.js
-```
+The API will be available at `http://localhost:5000`

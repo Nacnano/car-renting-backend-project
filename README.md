@@ -1,14 +1,51 @@
-# car-renting-backend-project
+# Car Renting Backend Project
 
-A final project for my backend course at Chulalongkorn University.
+## How to Run
 
-## Overview
+This project consists of two services: API (backend) and Client (frontend).
 
-This project is a **Rental Car Booking System** with a built-in **Wallet System**.
+### Running the API Service
 
-- **Backend:** Node.js, Express, MongoDB
-- **Features:** Authentication, Car Provider Management, Booking System, Wallet (Deposit/Withdraw/Pay/Refund).
+1. Navigate to the `api` directory:
 
-## Documentation
+   ```bash
+   cd api
+   ```
 
-Please refer to the [API Documentation](api/README.md) for detailed features, installation steps, and API endpoints.
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create a `config/config.env` file (use `config/config.env.example` as a template) with your configuration.
+
+4. Run the server:
+
+   ```bash
+   npm run dev
+   ```
+
+   The API will be available at `http://localhost:5000`
+
+### Running the Client Service
+
+1. Navigate to the `client` directory:
+
+   ```bash
+   cd client
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   The client will be available at `http://localhost:5173`
